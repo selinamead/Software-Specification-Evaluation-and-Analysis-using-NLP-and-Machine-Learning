@@ -123,10 +123,16 @@ class NLP_Features():
           
           self.stemmer = SnowballStemmer("german")
 
+     
+     #============================================================================================================#
+     ''' 
+     Functions to extract nlp features from the requirements 
 
-     """ selects the number of sentences present in one requirement """
+     '''
+     
+     """ selects the number of sentences in one requirement and takes the greater number from nltk or spacy """
      def select_sentences(self, row, nb="n"):
-          # if the module nltk detects less sentences than spacy module
+          # check if nltk detects less sentences than spacy
           if (row['sentence_nb_by_nltk']<=row['sentence_nb_by_nlp']):
                if nb == "y":
                     return row['sentence_nb_by_nltk']
@@ -144,6 +150,23 @@ class NLP_Features():
           return [(w.text, w.tag_, w.pos_) for w in nlp(sentence)]
 
      """ function that returns the number of syllables per words. """
+     # def _syllables(word):
+     #      syllable_count = 0
+     #      vowels = 'aeiouy'
+     #      if word[0] in vowels:
+     #           syllable_count += 1
+     #      for index in range(1, len(word)):
+     #           if word[index] in vowels and word[index - 1] not in vowels:
+     #                syllable_count += 1
+     #      if word.endswith('e'):
+     #           syllable_count -= 1
+     #      if word.endswith('le') and len(word) > 2 and word[-3] not in vowels:
+     #           syllable_count += 1
+     #      if syllable_count == 0:
+     #           syllable_count += 1
+
+     #      return syllable_count
+
      def compute_SPW(self, text):
           syllable = 0
           vowels = ['a','e','i','o','u','y','ä','ü','ö','-']
@@ -162,50 +185,48 @@ class NLP_Features():
           return syllable/(len(text.split())*1.0)
 
      def count_punctuation(self,attribute):
-          tot =0
+          i = 0
           for w in range(len(attribute)):
           # if it is tagged with "$(" (<=> punctuation tag)
                if attribute[w][1]=="$(":
-                    tot+=1
-
-          return tot
+                    i+=1
+          return i
 
      def count_comma(self,attribute):
-          tot =0
+          i = 0
           for w in range(len(attribute)):
                if attribute[w][1]=="$,":
-                    tot+=1
-          return tot
+                    i+=1
+          return i
 
      def count_weird_words(self, attribute):
-          tot =0
+          i = 0
           for w in range(len(attribute)):
                if attribute[w][2]=="X":
-                    tot+=1
-
-          return tot
+                    i+=1
+          return i
 
      """ Search for specific words in the requirements. When word is beispiel or circa, take abbreviation into account """
-     def search_words(self, attribute, search_word):
+     def search_specific_words(self, attribute, search_word):
           if search_word=="beispiel":
                word = ["z.b.","zb","zum beispiel","zb."]
           elif search_word=="circa":
                word = ["circa","ca","ca."]
           else: word = [search_word.lower()]
-          tot = 0
+          i = 0
           for w in range(len(attribute)):
                if attribute[w][0].lower() in word:
-                    tot+=1
-          return tot
+                    i+=1
+          return i
 
      """ function that checks the presence of "und" or "oder" in the requirement (double counting with CONJ?)"""
      def count_Copulative_Disjunctive_terms(self, requirement):
           disj_list = ["und","oder"]
-          tot = 0
+          i = 0
           for w in requirement.split():
                if w.lower() in disj_list:
-                    tot+=1
-          return tot
+                    i+=1
+          return i
 
      """ Checks for the presence of "minimum" or "maximum" and their derivated forms"""
      def check_max_min_presence(self, requirement):
@@ -222,11 +243,11 @@ class NLP_Features():
      def time_logical_conj(self,attribute):
           # list of logical conjunction taken into account
           conj_list = ["während","sobald","bis","innerhalb","bei","wenn","gemäß","falls","bzw."]
-          tot = 0
+          i = 0
           for w in range(len(attribute)):
                if attribute[w][0].lower() in conj_list:
-                    tot+=1
-          return tot
+                    i+=1
+          return i
 
 
      def search_measurements_indicators(self, attribute):
@@ -248,11 +269,11 @@ class NLP_Features():
                return "no"
 
      def search_numerical_value(self, attribute):
-          tot = 0
+          i = 0
           for w in range(len(attribute)):
                if attribute[w][2]=="NUM":
-                    tot+=1
-          return tot
+                    i+=1
+          return i
 
      def get_weakwords(self):
 
@@ -267,43 +288,43 @@ class NLP_Features():
           self.weakwords = weakwords_list_lower
 
      def count_weakwords_from_tags(self, attribute):
-          tot = 0
+          i = 0
           for w in range(len(attribute)):
                if attribute[w][0].lower() in self.weakwords:
-                    tot+=1
+                    i+=1
                else:
                     w_stem = self.stemmer.stem(attribute[w][0].lower())
                     if w_stem in self.weakwords:
-                         tot+=1
-          return tot
+                         i+=1
+          return i
 
      def count_weakwords_from_sentence(self, sentence):
-          tot = 0
+          i = 0
           weak = []
           words = sentence.split()
           for w in words:
                if w.lower() in self.weakwords:
-                    tot+=1
+                    i+=1
                     weak.append(w)
-          return tot, weak
+          return i, weak
 
      def count_weakwords_from_lemma(self, attribute, stemmer):
-          tot = 0
+          i = 0
           weak = []
           for w in range(len(attribute)):
                if attribute[w][0].lower() in self.weakwords:
-                    tot+=1
+                    i+=1
                     weak.append(attribute[w][0].lower())
                else:
                     w_stem = stemmer.stem(attribute[w][0].lower())
                     if w_stem in self.weakwords:
-                         tot+=1
+                         i+=1
                          weak.append(w_stem)
-          return tot, weak
+          return i, weak
 
-     """ function that tries to find out if a sentence is written in a passive form 
-        as rule : if we have at least one past participe and one auxiliary that is "werden", "wird", "worden" "wurde", then we have a passive sentence
-        attribute corresponds to the requirements processed by nlp = (word_, tag_, pos_)
+     """ Function to determine if a sentence is written in passive form
+          # if at least one past participe and one auxiliary ("werden", "wird", "worden" "wurde") = passive sentence
+          attribute corresponds to the requirements processed by nlp = (word_, tag_, pos_)
      """
      def passive_detection(self, attribute):
           answer = "no"
@@ -329,10 +350,10 @@ class NLP_Features():
                return "no"
 
 
-     """ counts how many subordinate conjunctions 
-        (e.g. after, although, as, because, before, even if, even though, if, in order that, once, provided that, 
-        rather than, since, so that, than, that, though, unless, until, when, whenever, where, whereas, wherever, 
-        whether, while, why) are present in the requirement 
+     """ function that counts how many subordinate conjunctions: 
+         (e.g. after, although, as, because, before, even if, even though, if, in order that, once, provided that, 
+         rather than, since, so that, than, that, though, unless, until, when, whenever, where, whereas, wherever, 
+         whether, while, why) are present in the requirement 
      """
      def count_subordinate_conjunction(self, attribute):
           nb_sc=sum(attribute[x][2]=="SCONJ" for x in range(len(attribute)))
@@ -340,7 +361,7 @@ class NLP_Features():
 
 
      """ function that counts how many coordination conjunctions or comparison conjunctions 
-     (und, oder, als, bzw., bis, oder) are present in the requirement
+         (und, oder, als, bzw., bis, oder) are present in the requirement
      """
      def count_comp_coor_conjunction(self, attribute):
           nb_cc=sum(attribute[x][2]=="CONJ" for x in range(len(attribute)))
@@ -387,61 +408,132 @@ class NLP_Features():
                return text.ents
 
      # ============================================================================================================== #
+
+     '''
+     A function to extract features from requirements and create a dataframe
+     '''
+     def extract_features(self, Req_list, score_target, export = True, corpal = True):
+
+          nlp = spacy.load('de_core_news_sm')
+          stemmer = SnowballStemmer("german")
+          stop = stopwords.words('german')
+          features = pd.DataFrame()
+          # create first column of dataframe by allocating requirement list to it; one requirement per line
+          features['req']=Req_list
+          # get text, tag_ and pos_ attributes for each word
+          features['req_nlp']=features['req'].apply(lambda x:nlp(x))
+          features['tags']= features['req_nlp'].apply(lambda x: [(w.text, w.tag_, w.pos_) for w in x])
+
+          # Analysis using NLTK
+          # Split sentences then count number in each requirement
+          features['sentences_by_nltk']=features['req'].apply(lambda x:nltk.sent_tokenize(x,'german'))
+          features['sentence_nb_by_nltk']=features['req'].apply(lambda x:len(nltk.sent_tokenize(x,'german')))
+          # analysis with spacy
+          features['sentences_by_nlp']=features['req_nlp'].apply(lambda x:[sent.string.strip() for sent in x.sents])
+          features['sentence_nb_by_nlp']=features['req_nlp'].apply(lambda x:len([sent.string.strip() for sent in x.sents]))
+
+          # number of sentences per requirement
+          features['sentences']=features.apply(lambda x: self.select_sentences(x),axis=1)
+          features['sentences_nb']=features.apply(lambda x: self.select_sentences(x,"y"),axis=1)
+          features['sentences_tagged']=features['sentences'].apply(lambda x: [self.tag_sentence(nlp,w) for w in x])
+
+          # Calculating Readability-Index
+          # words in requirement
+          features['words_nb']=features['req'].apply(lambda x:len(x.split()))
+          # words per sentence
+          features['WPS']=features['words_nb']/features['sentences_nb']
+          # syllables per word
+          features['SPW']=features['req'].apply(lambda x: self.compute_SPW(x))
+          # flesch index
+          features['Flesch_Index']=features.apply(lambda x:round((180-x['WPS']-(58.5*x['SPW']))),axis=1)
+          # Analyzing punctuation
+          features['internal_punctuation'] = features['tags'].apply(lambda x: self.count_punctuation(x))
+          features['comma'] = features['tags'].apply(lambda x: self.count_comma(x))
+          features['weird_words'] = features['tags'].apply(lambda x: self.count_weird_words(x))
+
+          # Analyzing and counting specific words and list containing words
+          features['beispiel'] = features['tags'].apply(lambda x: self.search_specific_words(x,'beispiel'))
+          features['circa'] = features['tags'].apply(lambda x: self.search_specific_words(x,'circa'))
+          features['wenn'] = features['tags'].apply(lambda x: self.search_specific_words(x,'wenn'))
+          features['aber'] = features['tags'].apply(lambda x: self.search_specific_words(x,'aber'))
+          features['max_min_presence'] = features['req'].apply(lambda x: self.check_max_min_presence(x))
+          features['Nb_of_Umsetzbarkeit_conj'] = features['tags'].apply(lambda x: self.time_logical_conj(x))
+          features['measurement_values'] = features['tags'].apply(lambda x: self.search_measurements_indicators(x))
+          features['numerical_values'] = features['tags'].apply(lambda x: self.search_numerical_value(x))
+          features['polarity'] = features['req'].map(lambda text: TextBlobDE(text).sentiment.polarity)
+
+          # Analyze and create weakwords
+          features['weakwords_nb'] = features['tags'].apply(lambda x:self.count_weakwords_from_tags(x))
+          features['weakwords_nb2'] = features['req'].apply(lambda x:self.count_weakwords_from_sentence(x))
+          features['weakwords_nb2_lemma'] = features['tags'].apply(lambda x: self.count_weakwords_from_lemma(x, stemmer))
+          features['difference'] = features['weakwords_nb2_lemma'].apply(lambda x:x[0]) - features['weakwords_nb2'].apply(lambda x:x[0])
+
+          # Analyzing passive and active and auxiliary attributes at the beginning of a requirement
+          features['passive_global'] = features['tags'].apply(lambda x: self.passive_detection(x))
+          features['passive_per_sentence'] = features['sentences_tagged'].apply(lambda x: [self.passive_detection(s) for s in x])
+          features['passive_percent'] = features['passive_per_sentence'].apply(lambda x: (sum([y=="yes" for y in x])/len(x)))
+          features['Aux_Start'] = features['tags'].apply(lambda x:self.aux_1st(x))
+          features['Aux_Start_per_sentence'] = features['sentences_tagged'].apply(lambda x:[self.aux_1st(s) for s in x])
+
+          # Analyzing conjunctions, verbs and auxiliaries
+          features['Sub_Conj']=features['tags'].apply(lambda x:self.count_subordinate_conjunction(x))
+          features['Comp_conj']=features['tags'].apply(lambda x:self.count_comp_coor_conjunction(x))
+          features['Nb_of_verbs']=features['tags'].apply(lambda x:self.count_verb(x))
+          features['Nb_of_auxiliary']=features['tags'].apply(lambda x:self.count_aux(x))
+          features['werden']=features['req'].apply(lambda x:self.count_werden(x))
+
+          # same functions as previous block but analysis made for each sentence on one requirement
+          features['Sub_Conj_pro_sentece']=features['sentences_tagged'].apply(lambda x:[self.count_subordinate_conjunction(s) for s in x])
+          features['Comp_conj_pro_sentence']=features['sentences_tagged'].apply(lambda x:[self.count_comp_coor_conjunction(s) for s in x])
+          features['Nb_of_verbs_pro_sentence']=features['sentences_tagged'].apply(lambda x:[self.count_verb(s) for s in x])
+          features['Nb_of_auxiliary_pro_sentence']=features['sentences_tagged'].apply(lambda x:[self.count_aux(s) for s in x])
+          features['werden_pro_sentence']=features['sentences'].apply(lambda x:[self.count_werden(s) for s in x])
+
+          features['formal_global'] = features['req'].apply(lambda x:self.contain_Muss_Darf_nicht(stemmer,x))
+          features['formal_per_sentence'] = features['sentences'].apply(lambda x:[self.contain_Muss_Darf_nicht(stemmer,s) for s in x])
+          features['formal_percent'] = features['formal_per_sentence'].apply(lambda x: (sum([y=="yes" for y in x])/len(x)))
+          features['entities'] = features['req_nlp'].apply(lambda x:self.entities_label(x))
+
+          # Graphical representation of the vocabulary of requirements corpus
+          if corpal:
+               self.Corpus_Analysis(Req_list,stop)
+
+          if export:
+               my_path = Path(u"/Users/selina/Code/Python/Thesis_Code/Features/" + 'export_features')
+               g_Dirpath= os.path.abspath(my_path)
+               dataFile = g_Dirpath + '\\' + 'Features_Export.xlsx'
+               print ("Create Excel export file: %s"%(dataFile))
+               features[0:5000].to_excel(dataFile, index=False)
+               print ("\nFeatures_Export XLS-file created and data copied.")
+
+          weakword_al = True
+          if weakword_al:
+               weakword_analysis = features[['weakwords_nb2','weakwords_nb2_lemma','difference']]
+               datafile = "./Generated_Files/" + str(score_target) + "/Weakword_Analysis/" + str(score_target) + ".xlsx"
+               weakword_analysis.to_excel(datafile, index=False)
+               weakword_analysis2 = features[features['difference']!= 0][["req","tags",'weakwords_nb2','weakwords_nb2_lemma','difference']]
+               datafile = "./Generated_Files/" + str(score_target) + "/Weakword_Analysis/" + str(score_target) + ".xlsx"
+               weakword_analysis2.to_excel(datafile, index=False)
+               print("\n \n")
+               # print(features[features['difference']!= 0][["req","tags",'weakwords_nb2','weakwords_nb2_lemma','difference']])
+               print("\nFeatures are retrieved and delivered to Data_Preprocessing\n\n")
+               # print(features.sentences_tagged)
+
+
+          return features, features.sentences_tagged
      
-     """ Reads the "requirement" column of an excel file and returns it as a dataframe """
-     def readData_csv(self, address):
-          self.df=pd.read_csv(address,sep=";")
-          self.Req= self.df['requirement']
-          return self.Req
+     # ======================================================================================================= #
+     
+     # NOT WORKING
+     # """ Reads the "requirement" column of an excel file and returns it as a dataframe """
+     # def readData_csv(self, address):
+     #      self.df=pd.read_csv(address,sep=";")
+     #      self.Req= self.df['requirement']
+     #      return self.Req
+     # """ Reads the "requirement" column of an excel file and returns it as a dataframe """
+     # def readData_excel(self, address, worksheet):
+     #      self.df=pd.read_excel(address,worksheet,encoding="utf-8")
+     #      self.Req= self.df['requirement']
+     #      return self.Req
 
-
-     """ Reads the "requirement" column of an excel file and returns it as a dataframe """
-     def readData_excel(self, address, worksheet):
-          self.df=pd.read_excel(address,worksheet,encoding="utf-8")
-          self.Req= self.df['requirement']
-          return self.Req
-
-     """ Graphic representation of the requirements vocabulary pool, ordered by words importance (number of appearance) """
-     def Corpus_Analysis(self, data, stop):
-          count = CountVectorizer()
-          tfidf = TfidfTransformer()
-          # print option for graphics
-          np.set_printoptions(precision=2)
-          docs = np.array(data)
-          bag = count.fit_transform(docs)
-          # create a dictionary with a position for each unique word of the corpus
-          Vocabulary = count.vocabulary_
-          Bag_array=bag.toarray()
-          # vector that count how many time unique word appears in the corpus
-          Vocab_count=np.cumsum(Bag_array,axis=0)[-1]
-          Vocab_anzahl={}
-          # create dictionary: word: nb of occurence in the corpus, remove stop words
-          for key, value in Vocabulary.items():
-               if key not in stop:
-                    # divide by 3, because each req is present 3 times in the initial corpus
-                    Vocab_anzahl[key]=Vocab_count[value]/3
-                    # order dictionnary by words number of appearances
-                    Vocab_sorted=OrderedDict(sorted(Vocab_anzahl.items(), key=lambda t:t[1]))
-                    # call the function Vocabolary _Graph to plot ordered vocabulary list
-          
-          self.Vocabulary_Graph(Vocab_sorted)
-
-     """ function that plots a given dictionary of words with their number of appearances in a text corpus as a bar plot """
-     def Vocabulary_Graph(self, Vocab):
-          # Find unique words
-          x=range(len(np.unique(Vocab.values())))
-          height = 125
-          text={}
-          for i in np.unique(Vocab.values()):
-               text[i]=''
-          # for each number of appearance, write the list of words having this number of appearance
-          for t in range(len(Vocab.keys())):
-               # every 10 words, we write a new line
-               if t%10==0:
-                    text[Vocab.values()[t]]+='<br> '+Vocab.keys()[t]
-               else:
-                    text[Vocab.values()[t]]+=', '+Vocab.keys()[t]
-          trace0=go.Bar(x=np.unique(Vocab.values()),y=height,text=text.values(),orientation="v")
-          layout = go.Layout(title="Number of words per Occurence",yaxis=dict(title="Number of Word",showticklabels=True),xaxis=dict(title="Occurence of Words"))
-          plot(go.Figure(data=[trace0],layout=layout))
-
+     
